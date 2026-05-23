@@ -1,5 +1,6 @@
 import { User as UserIcon, LogOut, LayoutDashboard, Settings } from 'lucide-react';
 import { User } from '../types';
+import logoGateTi from '../image/logo_gateTi.png';
 
 interface NavbarProps {
   activePage: string;
@@ -19,30 +20,7 @@ export default function Navbar({ activePage, onNavigate, currentUser, onLogout }
           className="flex cursor-pointer items-center space-x-3 transition hover:opacity-90"
           id="nav-logo-group"
         >
-          {/* Custom SVG Logo inspired by GateTI "Your Gateway to Opportunity" */}
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-amber-400 font-bold shadow-md">
-            <svg 
-              className="h-7 w-7" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-              <polyline points="10 17 15 12 10 7" />
-              <line x1="15" y1="12" x2="3" y2="12" />
-            </svg>
-          </div>
-          <div>
-            <div className="text-xl font-bold tracking-tight text-blue-900 font-display flex items-baseline">
-              Gate<span className="text-amber-500">TI</span>
-            </div>
-            <div className="hidden text-[9px] text-slate-500 sm:block -mt-1 font-mono uppercase tracking-wider">
-              Your Gateway to Opportunity
-            </div>
-          </div>
+          <img src={logoGateTi} alt="GateTI Logo" className="h-14 w-auto object-contain" />
         </div>
 
         {/* Desktop Navigation Links */}

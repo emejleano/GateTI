@@ -474,47 +474,9 @@ async function startServer() {
     }
   });
 
-  // Automated background scheduler - loops as a periodic sync simulator
-  setInterval(async () => {
-    const db = getDatabase();
-    if (db.settings.autoSyncEnabled && db.settings.spreadsheetUrl) {
-      console.log('AutoSync trigger: checking external spreadsheet updates...');
-      try {
-        const scriptUrl = db.settings.spreadsheetUrl.trim();
-        const response = await fetch(`${scriptUrl}?action=getAll`);
-        if (response.ok) {
-          const payload = await response.json();
-          if (payload && (payload.lombas || payload.beasiswas || payload.beasiswa_timelines || payload.webinars || payload.prestasis || payload.users || payload.certifications)) {
-            const loadedDb = getDatabase();
-            if (payload.users && payload.users.length) loadedDb.users = payload.users;
-            if (payload.lombas && payload.lombas.length) loadedDb.lombas = payload.lombas;
-            if (payload.prestasis && payload.prestasis.length) loadedDb.prestasis = payload.prestasis;
-            if (payload.beasiswas && payload.beasiswas.length) loadedDb.beasiswas = payload.beasiswas;
-            if (Array.isArray(payload.beasiswa_timelines)) {
-              loadedDb.beasiswa_timelines = payload.beasiswa_timelines.map((item: any) => ({
-                ...item,
-                sortOrder: Number(item.sortOrder || 1)
-              }));
-            }
-            if (payload.webinars && payload.webinars.length) loadedDb.webinars = payload.webinars;
-            if (payload.certifications && payload.certifications.length) loadedDb.certifications = payload.certifications;
-            
-            loadedDb.settings.lastSyncTime = new Date().toLocaleString('id-ID', {
-              timeZone: 'Asia/Jakarta',
-              dateStyle: 'medium',
-              timeStyle: 'medium'
-            });
-            loadedDb.settings.status = 'success';
-            loadedDb.settings.errorMessage = undefined;
-            saveDatabase(loadedDb);
-            console.log('AutoSync periodic background check: completed successfully.');
-          }
-        }
-      } catch (err) {
-        console.warn('AutoSync periodic background sync failed silently:', err);
-      }
-    }
-  }, 90000); // Check every 90 seconds if autosync enabled
+  // NOTE: Auto-sync removed. Frontend now communicates directly with Google Apps Script.
+  // The server.ts is only used for local development (serving Vite dev server).
+
 
   // Serve static assets or mount Vite under dev environment
   if (process.env.NODE_ENV !== 'production') {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchAllData } from '../api';
 import { Webinar } from '../types';
 import { ArrowLeft, ExternalLink, Calendar, Users, Tv, Clock, Check, BellRing } from 'lucide-react';
 
@@ -18,9 +19,8 @@ export default function WebinarPage({ onNavigate, initialViewMode = 'landing' }:
     const fetchWebinars = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/api/webinars');
-        const data = await res.json();
-        setWebinars(data);
+        const data = await fetchAllData();
+        setWebinars(data.webinars);
       } catch (err) {
         console.error('Error fetching webinars', err);
       } finally {

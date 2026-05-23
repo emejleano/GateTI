@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
+import { loginUser } from '../api';
 import { ShieldCheck, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
 
 interface AdminLoginProps {
@@ -24,22 +25,13 @@ export default function AdminLogin({ onLoginSuccess, onNavigate }: AdminLoginPro
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nim: username.trim(), password: password.trim() })
-      });
+      const user = await loginUser(username.trim(), password.trim());
 
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Kredensial staf/admin salah.');
-      }
-
-      if (result.user.role !== 'admin') {
+      if (user.role !== 'admin') {
         throw new Error('Akses ditolak. Akun Anda bukan bertipe Staf Administrasi.');
       }
 
-      onLoginSuccess(result.user);
+      onLoginSuccess(user);
     } catch (err: any) {
       setError(err.message || 'Koneksi database terganggu.');
     } finally {

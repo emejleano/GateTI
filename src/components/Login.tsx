@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { User } from '../types';
+import { loginUser } from '../api';
 import { Lock, UserCheck, AlertCircle } from 'lucide-react';
+import logoTeknikIndustri from '../image/logo_teknikindustri.png';
+import loginBg from '../image/login_card.png';
+
 
 interface LoginProps {
   onLoginSuccess: (user: User) => void;
@@ -24,18 +28,8 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nim: nim.trim(), password: password.trim() })
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Gagal login. Periksa kembali NIM dan password.');
-      }
-
-      onLoginSuccess(result.user);
+      const user = await loginUser(nim.trim(), password.trim());
+      onLoginSuccess(user);
     } catch (err: any) {
       setError(err.message || 'Koneksi server gagal.');
     } finally {
@@ -43,17 +37,6 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
     }
   };
 
-  // Helper autofill for testing
-  const handleAutoFill = (role: 'student' | 'admin') => {
-    if (role === 'student') {
-      setNim('3333230000');
-      setPassword('230000');
-    } else {
-      setNim('admin');
-      setPassword('admin123');
-    }
-    setError(null);
-  };
 
   return (
     <div 
@@ -64,7 +47,7 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(rgba(17, 24, 39, 0.75), rgba(30, 58, 138, 0.85)), url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1200')`
+          backgroundImage: `linear-gradient(rgba(17, 24, 39, 0.75), rgba(30, 58, 138, 0.85)), url('${loginBg}')`
         }}
       />
 
@@ -85,18 +68,7 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
       >
         {/* Emblem - Teknik Industri */}
         <div className="flex flex-col items-center pb-6 border-b border-slate-100">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-900 text-white shadow-inner">
-            <svg 
-              className="h-9 w-9 text-amber-400" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </div>
+          <img src={logoTeknikIndustri} alt="Teknik Industri Logo" className="h-24 w-auto object-contain" />
           <span className="mt-2 text-md font-bold tracking-widest text-blue-950 uppercase font-display">
             TEKNIK INDUSTRI
           </span>
@@ -168,31 +140,6 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
           </button>
         </form>
 
-        {/* Quick Credentials Seeding area for ease of testing */}
-        <div className="mt-8 rounded-xl bg-slate-50 p-4 border border-slate-150">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center mb-2.5">
-            🔑 COBA DEMO INSTAN (ONE-CLICK LOGIN)
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleAutoFill('student')}
-              className="rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-950 font-bold text-xs py-2 transition"
-              id="demo-student-fill"
-            >
-              Demo Mahasiswa
-            </button>
-            <button
-              onClick={() => handleAutoFill('admin')}
-              className="rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-950 font-bold text-xs py-2 transition"
-              id="demo-admin-fill"
-            >
-              Demo Admin/Staff
-            </button>
-          </div>
-          <p className="mt-2 text-center text-[10px] font-medium text-slate-400">
-            Mahasiswa: NIM <b>3333230000</b> | Pwd <b>230000</b>
-          </p>
-        </div>
       </div>
 
       {/* Footer copyright */}

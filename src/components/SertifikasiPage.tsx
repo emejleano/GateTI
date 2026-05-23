@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchAllData } from '../api';
 import { Certification } from '../types';
 import { 
   ArrowLeft, Brain, Calendar, DollarSign, ExternalLink, Filter, HelpCircle, 
@@ -31,9 +32,8 @@ export default function SertifikasiPage({ onNavigate, initialViewMode = 'landing
     const fetchCerts = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/api/certifications');
-        const data = await res.json();
-        setCertifications(data);
+        const data = await fetchAllData();
+        setCertifications(data.certifications);
       } catch (err) {
         console.error('Error fetching certificates', err);
       } finally {

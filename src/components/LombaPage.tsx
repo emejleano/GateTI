@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchAllData } from '../api';
 import { Lomba, Prestasi } from '../types';
 import { 
   ArrowLeft, Calendar, Award, Trophy, Search, ChevronRight, Share2, ExternalLink, Filter, HelpCircle, FileText, Info, Award as AwardIcon, MapPin 
@@ -35,16 +36,9 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [lombaRes, prestRes] = await Promise.all([
-          fetch('/api/lombas'),
-          fetch('/api/prestasis')
-        ]);
-        
-        let lombaData = await lombaRes.json();
-        let prestData = await prestRes.json();
-        
-        setLombas(lombaData);
-        setPrestasis(prestData);
+        const data = await fetchAllData();
+        setLombas(data.lombas);
+        setPrestasis(data.prestasis);
       } catch (e) {
         console.error('Failed fetching competitions database', e);
       } finally {

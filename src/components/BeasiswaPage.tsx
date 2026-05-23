@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { fetchAllData, generateQRCodeUrl } from '../api';
 import { Beasiswa, BeasiswaTimeline } from '../types';
 import { ArrowLeft, ExternalLink, Calendar, CheckSquare, QrCode, ClipboardList, GraduationCap, Clock, Award } from 'lucide-react';
+import beasiswaBg from '../image/beasiswa.png';
 
 interface BeasiswaPageProps {
   onNavigate: (page: string) => void;
@@ -19,14 +21,9 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
     const fetchBeasiswas = async () => {
       try {
         setLoading(true);
-        const [res, timelineRes] = await Promise.all([
-          fetch('/api/beasiswas'),
-          fetch('/api/beasiswa-timelines')
-        ]);
-        const data = await res.json();
-        const timelineData = await timelineRes.json();
-        setBeasiswas(data);
-        setBeasiswaTimelines(timelineData);
+        const data = await fetchAllData();
+        setBeasiswas(data.beasiswas);
+        setBeasiswaTimelines(data.beasiswa_timelines);
       } catch (err) {
         console.error('Error loading scholarships', err);
       } finally {
@@ -79,7 +76,7 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
             <div 
               className="lg:col-span-2 relative rounded-3xl overflow-hidden bg-cover bg-center h-[24rem] flex flex-col justify-between p-8 sm:p-12 shadow-xl border border-blue-950/10 group"
               style={{
-                backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.6)), url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1200')`
+                backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.6)), url('${beasiswaBg}')`
               }}
             >
               <div className="absolute top-0 right-0 w-44 h-44 bg-lime-400/20 rounded-full filter blur-2xl pointer-events-none" />
@@ -290,12 +287,19 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
               <div className="grid gap-4 sm:grid-cols-12 items-center bg-slate-50 rounded-2xl p-4 border border-slate-200/60">
                 {/* QR block code in desktop */}
                 <div className="sm:col-span-4 flex flex-col items-center justify-center p-3.5 bg-white border border-slate-150 rounded-xl">
-                  {/* Decorative CSS QR code frame */}
-                  <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm p-1">
-                    <QrCode className="h-16 w-16 text-amber-400" />
-                  </div>
+                  {selectedBeasiswa.registerLink ? (
+                    <img 
+                      src={generateQRCodeUrl(selectedBeasiswa.registerLink, 160)} 
+                      alt={`QR Code ${selectedBeasiswa.title}`}
+                      className="h-28 w-28 rounded-lg shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm p-1">
+                      <QrCode className="h-16 w-16 text-amber-400" />
+                    </div>
+                  )}
                   <span className="mt-2 text-[9px] font-semibold text-slate-400 uppercase tracking-wide text-center">
-                    Scan Detail QR
+                    SCAN DETAIL QR
                   </span>
                 </div>
 
