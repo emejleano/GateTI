@@ -1,0 +1,6 @@
+{
+  "name": "GateTI",
+  "description": "Information and Database Portal for Industrial Engineering (Teknik Industri) Students at Untirta.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

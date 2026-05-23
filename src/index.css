@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-primary: #1e3a8a; /* Deep blue used heavily for Untirta */
+  --color-brand-secondary: #002266;
+  --color-brand-accent: #a3e635; /* Custom green / lime used in buttons in PDF */
+}
+
+/* Custom scrollbars and styling resets */
+body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Hide navigation item outline on focus */
+a, button {
+  outline: none;
+}
+
