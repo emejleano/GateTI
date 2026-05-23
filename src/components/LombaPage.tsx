@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { fetchAllData } from '../api';
 import { Lomba, Prestasi } from '../types';
 import { 
-  ArrowLeft, Calendar, Award, Trophy, Search, ChevronRight, Share2, ExternalLink, Filter, HelpCircle, FileText, Info, Award as AwardIcon, MapPin 
+  ArrowLeft, Calendar, Award, Trophy, Search, ChevronRight, Share2, ExternalLink, Filter, HelpCircle, FileText, Info, Award as AwardIcon, MapPin, X
 } from 'lucide-react';
 
 interface LombaPageProps {
@@ -12,6 +12,7 @@ interface LombaPageProps {
 
 export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: LombaPageProps) {
   const [viewMode, setViewMode] = useState<'landing' | 'grid' | 'details' | 'prestasi'>(initialViewMode);
+  const [selectedPrestasi, setSelectedPrestasi] = useState<Prestasi | null>(null);
   
   // Data lists from Backend
   const [lombas, setLombas] = useState<Lomba[]>([]);
@@ -610,12 +611,17 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
                   {paginatedPrestList.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/50 transition duration-100">
-                      <td className="px-5 py-4 whitespace-nowrap font-bold text-slate-900">{item.name}</td>
+                    <tr 
+                      key={item.id} 
+                      onClick={() => setSelectedPrestasi(item)}
+                      className="hover:bg-blue-50/30 hover:text-blue-900 transition duration-150 cursor-pointer group"
+                      title="Klik untuk melihat detail prestasi"
+                    >
+                      <td className="px-5 py-4 whitespace-nowrap font-bold text-slate-900 group-hover:text-blue-900">{item.name}</td>
                       <td className="px-5 py-4 max-w-[200px] truncate" title={item.title}>{item.title}</td>
                       <td className="px-5 py-4 whitespace-nowrap">{item.category}</td>
                       <td className="px-5 py-4 whitespace-nowrap uppercase text-[10px] tracking-wide text-slate-500">{item.level}</td>
-                      <td className="px-5 py-4 whitespace-nowrap font-mono text-slate-600">{item.year}</td>
+                      <td className="px-5 py-4 whitespace-nowrap font-mono text-slate-650">{item.year}</td>
                       <td className="px-5 py-4">{item.organizer}</td>
                       <td className="px-5 py-4 whitespace-nowrap text-center">{renderMedal(item.rank)}</td>
                     </tr>
@@ -666,6 +672,98 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* Modal Detail Prestasi */}
+      {selectedPrestasi && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
+          onClick={() => setSelectedPrestasi(null)}
+        >
+          <div 
+            className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 flex flex-col items-center animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button 
+              onClick={() => setSelectedPrestasi(null)}
+              className="absolute top-4 right-4 rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              title="Tutup detail"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+
+            {/* Medal/Trophy Emblem Icon */}
+            <div className={`mt-2 flex h-20 w-20 items-center justify-center rounded-3xl shadow-inner mb-4 ${
+              selectedPrestasi.rank.toLowerCase().includes('1') 
+                ? 'bg-amber-50 text-amber-500 border border-amber-200' 
+                : selectedPrestasi.rank.toLowerCase().includes('2')
+                  ? 'bg-slate-50 text-slate-400 border border-slate-200'
+                  : selectedPrestasi.rank.toLowerCase().includes('3')
+                    ? 'bg-orange-50 text-orange-650 border border-orange-200'
+                    : 'bg-blue-50 text-blue-500 border border-blue-200'
+            }`}>
+              <Trophy className={`h-11 w-11 ${
+                selectedPrestasi.rank.toLowerCase().includes('1') 
+                  ? 'fill-amber-400' 
+                  : selectedPrestasi.rank.toLowerCase().includes('2')
+                    ? 'fill-slate-300'
+                    : selectedPrestasi.rank.toLowerCase().includes('3')
+                      ? 'fill-orange-400'
+                      : ''
+              }`} />
+            </div>
+
+            {/* Rank/Juara Badge */}
+            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider mb-2 ${
+              selectedPrestasi.rank.toLowerCase().includes('1') 
+                ? 'bg-amber-100 text-amber-800' 
+                : selectedPrestasi.rank.toLowerCase().includes('2')
+                  ? 'bg-slate-100 text-slate-800'
+                  : selectedPrestasi.rank.toLowerCase().includes('3')
+                    ? 'bg-orange-100 text-orange-850'
+                    : 'bg-blue-100 text-blue-800'
+            }`}>
+              {selectedPrestasi.rank}
+            </span>
+
+            {/* Level / Tingkat Badge */}
+            <span className="inline-block text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-4 font-mono">
+              Tingkat {selectedPrestasi.level} • Tahun {selectedPrestasi.year}
+            </span>
+
+            {/* Title / Judul Karya */}
+            <h3 className="text-base font-black text-center text-blue-950 font-display uppercase leading-snug px-2 mb-4">
+              {selectedPrestasi.title}
+            </h3>
+
+            {/* Tim / Nama Peserta Card Box */}
+            <div className="w-full rounded-2xl bg-slate-50/70 border border-slate-150 p-4 mb-5 text-center">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Nama Peserta / Tim</span>
+              <span className="text-sm font-extrabold text-slate-800 font-display">{selectedPrestasi.name}</span>
+            </div>
+
+            {/* Grid Details */}
+            <div className="w-full grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl border border-slate-100 p-3 bg-slate-50/20">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Penyelenggara</span>
+                <span className="font-bold text-slate-800">{selectedPrestasi.organizer}</span>
+              </div>
+              <div className="rounded-xl border border-slate-100 p-3 bg-slate-50/20">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Jenis Lomba</span>
+                <span className="font-bold text-slate-800">{selectedPrestasi.category}</span>
+              </div>
+            </div>
+
+            {/* Action Tutup */}
+            <button 
+              onClick={() => setSelectedPrestasi(null)}
+              className="mt-6 w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs py-3.5 shadow-md active:scale-98 transition duration-150"
+            >
+              KEMBALI
+            </button>
+          </div>
         </div>
       )}
 

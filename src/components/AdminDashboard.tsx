@@ -1061,6 +1061,28 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
 
         </div>
       </div>
+
+      {/* Fullscreen Action Loading Overlay */}
+      {actionLoading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/70 backdrop-blur-xs p-6 animate-fade-in">
+          <div className="rounded-3xl bg-white p-8 shadow-2xl border border-slate-100 flex flex-col items-center text-center max-w-xs animate-scale-up">
+            {/* Spinning Loader */}
+            <div className="relative flex h-14 w-14 items-center justify-center mb-4">
+              {/* Outer double ring */}
+              <div className="absolute inset-0 rounded-full border-4 border-blue-900/10" />
+              <div className="absolute inset-0 rounded-full border-4 border-t-blue-900 border-l-blue-900 animate-spin" />
+            </div>
+            
+            <h4 className="text-sm font-extrabold text-blue-950 uppercase tracking-wider mb-2 font-display">
+              Sinkronisasi Data
+            </h4>
+            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+              Menyimpan perubahan ke Google Sheets. Harap tunggu beberapa saat...
+            </p>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

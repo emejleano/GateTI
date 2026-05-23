@@ -37,12 +37,12 @@ export function convertGoogleDriveUrl(url: string | undefined): string {
 
   const dMatch = trimmed.match(dRegex);
   if (dMatch && dMatch[1]) {
-    return `https://docs.google.com/uc?export=view&id=${dMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${dMatch[1]}`;
   }
 
   const idMatch = trimmed.match(idRegex);
   if (idMatch && idMatch[1]) {
-    return `https://docs.google.com/uc?export=view&id=${idMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${idMatch[1]}`;
   }
 
   return trimmed;
