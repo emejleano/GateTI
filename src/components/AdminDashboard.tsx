@@ -8,7 +8,8 @@ import {
 } from '../types';
 import {
   Plus, Trash2, ShieldCheck, Database, Calendar, Award,
-  Tv, GraduationCap, AlertTriangle, CheckCircle, Edit, KeyRound
+  Tv, GraduationCap, AlertTriangle, CheckCircle, Edit, KeyRound,
+  Search, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -34,6 +35,14 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   const [dataLoading, setDataLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [tableControls, setTableControls] = useState<Record<ManageSection, { search: string; filter: string; page: number; pageSize: number }>>({
+    users: { search: '', filter: 'all', page: 1, pageSize: 5 },
+    lombas: { search: '', filter: 'all', page: 1, pageSize: 5 },
+    beasiswas: { search: '', filter: 'all', page: 1, pageSize: 5 },
+    webinars: { search: '', filter: 'all', page: 1, pageSize: 5 },
+    certifications: { search: '', filter: 'all', page: 1, pageSize: 5 },
+    prestasis: { search: '', filter: 'all', page: 1, pageSize: 5 },
+  });
 
   // Forms states
   const [newLomba, setNewLomba] = useState<Partial<Lomba>>({
@@ -92,6 +101,136 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
     const timer = window.setTimeout(() => setFeedback(null), 4500);
     return () => window.clearTimeout(timer);
   }, [feedback]);
+
+  const updateTableControl = (section: ManageSection, patch: Partial<{ search: string; filter: string; page: number; pageSize: number }>) => {
+    setTableControls((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        ...patch,
+        page: patch.page ?? 1,
+      },
+    }));
+  };
+
+  const stringifySearch = (item: unknown) =>
+    Object.values(item as Record<string, unknown>)
+      .flatMap((value) => Array.isArray(value) ? value : [value])
+      .join(' ')
+      .toLowerCase();
+
+  const getUniqueOptions = <T,>(items: T[], getValue: (item: T) => string | undefined) =>
+    Array.from(new Set(items.map(getValue).filter(Boolean) as string[]));
+
+  const buildTableView = <T,>(
+    section: ManageSection,
+    items: T[],
+    getFilterValue: (item: T) => string | undefined
+  ) => {
+    const controls = tableControls[section];
+    const query = controls.search.trim().toLowerCase();
+    const filtered = items.filter((item) => {
+      const matchesSearch = !query || stringifySearch(item).includes(query);
+      const matchesFilter = controls.filter === 'all' || getFilterValue(item) === controls.filter;
+      return matchesSearch && matchesFilter;
+    });
+    const totalPages = Math.max(1, Math.ceil(filtered.length / controls.pageSize));
+    const page = Math.min(controls.page, totalPages);
+    const startIndex = (page - 1) * controls.pageSize;
+
+    return {
+      rows: filtered.slice(startIndex, startIndex + controls.pageSize),
+      filteredCount: filtered.length,
+      page,
+      totalPages,
+      start: filtered.length ? startIndex + 1 : 0,
+      end: Math.min(startIndex + controls.pageSize, filtered.length),
+    };
+  };
+
+  const renderTableControls = (
+    section: ManageSection,
+    title: string,
+    total: number,
+    filteredCount: number,
+    page: number,
+    totalPages: number,
+    filterOptions: string[],
+    filterLabel = 'Filter'
+  ) => {
+    const controls = tableControls[section];
+
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 font-display uppercase tracking-wide">{title}</h3>
+            <p className="mt-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Menampilkan {filteredCount} dari {total} data
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_7rem] xl:w-[38rem]">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={controls.search}
+                onChange={(e) => updateTableControl(section, { search: e.target.value })}
+                placeholder="Cari data..."
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-semibold text-slate-700 focus:outline-none"
+              />
+            </label>
+            <select
+              value={controls.filter}
+              onChange={(e) => updateTableControl(section, { filter: e.target.value })}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none"
+              aria-label={filterLabel}
+            >
+              <option value="all">Semua {filterLabel}</option>
+              {filterOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <select
+              value={controls.pageSize}
+              onChange={(e) => updateTableControl(section, { pageSize: Number(e.target.value) })}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none"
+              aria-label="Jumlah data per halaman"
+            >
+              {[5, 10, 20, 50].map((size) => (
+                <option key={size} value={size}>{size}/hal</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Halaman {page} dari {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => updateTableControl(section, { page: page - 1 })}
+              disabled={page <= 1}
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => updateTableControl(section, { page: page + 1 })}
+              disabled={page >= totalPages}
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // --- USER CRUD ---
   const resetUserForm = () => {
@@ -290,6 +429,13 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
     finally { setActionLoading(false); }
   };
 
+  const usersView = buildTableView('users', users, (item) => item.role);
+  const lombasView = buildTableView('lombas', lombas, (item) => item.category);
+  const beasiswasView = buildTableView('beasiswas', beasiswas, (item) => item.provider);
+  const webinarsView = buildTableView('webinars', webinars, (item) => item.status);
+  const certificationsView = buildTableView('certifications', certifications, (item) => item.category);
+  const prestasisView = buildTableView('prestasis', prestasis, (item) => item.level);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 w-full animate-fade-in" id="admin-dashboard-page">
       {feedback && (
@@ -477,6 +623,17 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                 </button>
               </form>
 
+              {renderTableControls(
+                'users',
+                'Data User',
+                users.length,
+                usersView.filteredCount,
+                usersView.page,
+                usersView.totalPages,
+                getUniqueOptions(users, (item) => item.role),
+                'Role'
+              )}
+
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <table className="min-w-full divide-y divide-slate-200 text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -488,7 +645,7 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-                    {users.map((user) => (
+                    {usersView.rows.map((user) => (
                       <tr key={String(user.nim)} className="hover:bg-slate-50/50">
                         <td className="px-5 py-4">
                           <span className="block font-bold text-slate-900">{user.name}</span>
@@ -508,6 +665,13 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                         </td>
                       </tr>
                     ))}
+                    {usersView.rows.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-10 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Data user tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -590,6 +754,17 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                 </button>
               </form>
 
+              {renderTableControls(
+                'lombas',
+                'Data Lomba',
+                lombas.length,
+                lombasView.filteredCount,
+                lombasView.page,
+                lombasView.totalPages,
+                getUniqueOptions(lombas, (item) => item.category),
+                'Tingkat'
+              )}
+
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <table className="min-w-full divide-y divide-slate-200 text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -602,7 +777,7 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-                    {lombas.map((l) => (
+                    {lombasView.rows.map((l) => (
                       <tr key={l.id} className="hover:bg-slate-50/50">
                         <td className="px-5 py-4 font-bold text-slate-900">{l.title}</td>
                         <td className="px-5 py-4 uppercase text-[10px] tracking-wide text-indigo-700 font-bold">{l.category}</td>
@@ -613,6 +788,13 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                         </td>
                       </tr>
                     ))}
+                    {lombasView.rows.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-10 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Data lomba tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -679,22 +861,23 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
 
               {/* Beasiswa Cards with information management */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 font-display uppercase tracking-wide flex items-center space-x-2">
-                    <GraduationCap className="h-4.5 w-4.5 text-blue-900" />
-                    <span>Daftar Beasiswa & Timeline</span>
-                  </h3>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {beasiswas.length} program
-                  </span>
-                </div>
+                {renderTableControls(
+                  'beasiswas',
+                  'Daftar Beasiswa & Informasi',
+                  beasiswas.length,
+                  beasiswasView.filteredCount,
+                  beasiswasView.page,
+                  beasiswasView.totalPages,
+                  getUniqueOptions(beasiswas, (item) => item.provider),
+                  'Penyelenggara'
+                )}
 
-                {beasiswas.length === 0 ? (
+                {beasiswasView.rows.length === 0 ? (
                   <div className="py-12 text-center text-xs text-slate-400 font-bold uppercase tracking-wider rounded-2xl border border-dashed border-slate-300 bg-white">
-                    Belum ada data beasiswa. Tambahkan di form di atas.
+                    Data beasiswa tidak ditemukan.
                   </div>
                 ) : (
-                  beasiswas.map((b) => {
+                  beasiswasView.rows.map((b) => {
                     const hasScheduleInfo = Boolean((b.timeline || '').trim());
                     return (
                       <div key={b.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -781,6 +964,17 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                 </button>
               </form>
 
+              {renderTableControls(
+                'webinars',
+                'Data Webinar',
+                webinars.length,
+                webinarsView.filteredCount,
+                webinarsView.page,
+                webinarsView.totalPages,
+                getUniqueOptions(webinars, (item) => item.status),
+                'Status'
+              )}
+
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <table className="min-w-full divide-y divide-slate-200 text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -791,7 +985,7 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-                    {webinars.map((w) => (
+                    {webinarsView.rows.map((w) => (
                       <tr key={w.id} className="hover:bg-slate-50/50">
                         <td className="px-5 py-4 font-bold text-slate-900">{w.title}</td>
                         <td className="px-5 py-4 text-slate-600">{w.speakerName}</td>
@@ -800,6 +994,13 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                         </td>
                       </tr>
                     ))}
+                    {webinarsView.rows.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-5 py-10 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Data webinar tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -851,6 +1052,17 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                 </button>
               </form>
 
+              {renderTableControls(
+                'certifications',
+                'Data Sertifikasi',
+                certifications.length,
+                certificationsView.filteredCount,
+                certificationsView.page,
+                certificationsView.totalPages,
+                getUniqueOptions(certifications, (item) => item.category),
+                'Kategori'
+              )}
+
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <table className="min-w-full divide-y divide-slate-200 text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -862,7 +1074,7 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-                    {certifications.map((c) => (
+                    {certificationsView.rows.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-50/50">
                         <td className="px-5 py-4 font-bold text-slate-900">{c.title}</td>
                         <td className="px-5 py-4 text-purple-700 font-bold">{c.provider}</td>
@@ -872,6 +1084,13 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                         </td>
                       </tr>
                     ))}
+                    {certificationsView.rows.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-10 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Data sertifikasi tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -929,6 +1148,17 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                 </button>
               </form>
 
+              {renderTableControls(
+                'prestasis',
+                'Data Prestasi',
+                prestasis.length,
+                prestasisView.filteredCount,
+                prestasisView.page,
+                prestasisView.totalPages,
+                getUniqueOptions(prestasis, (item) => item.level),
+                'Tingkat'
+              )}
+
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <table className="min-w-full divide-y divide-slate-200 text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -940,7 +1170,7 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-                    {prestasis.map((p) => (
+                    {prestasisView.rows.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/50">
                         <td className="px-5 py-4 font-bold text-slate-900">{p.name}</td>
                         <td className="px-5 py-4">{p.title}</td>
@@ -950,6 +1180,13 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                         </td>
                       </tr>
                     ))}
+                    {prestasisView.rows.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-10 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Data prestasi tidak ditemukan.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
