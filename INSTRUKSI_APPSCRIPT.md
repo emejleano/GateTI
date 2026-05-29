@@ -6,15 +6,14 @@
 Buka spreadsheet yang terhubung dengan Apps Script deployment ini.
 
 ### 2. Pastikan Sheet Berikut Ada
-Spreadsheet harus memiliki **7 sheet** dengan nama persis seperti berikut:
+Spreadsheet harus memiliki **6 sheet** dengan nama persis seperti berikut:
 
 | Nama Sheet | Kolom Header (Baris 1) |
 |---|---|
 | `users` | nim, name, jurusan, angkatan, role, passwordHash, photoUrl |
 | `lombas` | id, title, category, description, deadline, prize, image, registerLink, deskripsi, temaSubtema, timeline, syaratKetentuan, faq |
 | `prestasis` | id, name, title, category, level, year, organizer, rank |
-| `beasiswas` | id, title, provider, description, image, registerLink, timeline, requirements, qrCode |
-| `beasiswa_timelines` | id, beasiswaId, phase, date, description, sortOrder |
+| `beasiswas` | id, title, provider, description, image, registerLink, timeline, requirements |
 | `webinars` | id, title, subtitle, dateStr, timeStr, speakerName, speakerTitle, location, image, registerLink, status, description, benefits |
 | `certifications` | id, title, provider, category, description, deadline, fee, registerLink, image |
 
@@ -54,12 +53,12 @@ function doPost(e) {
   }
 }
 
-// Membaca seluruh data dari 7 sheet aktif
+// Membaca seluruh data dari 6 sheet aktif
 function handleGetData() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var result = {};
   
-  var sheets = ["users", "lombas", "prestasis", "beasiswas", "beasiswa_timelines", "webinars", "certifications"];
+  var sheets = ["users", "lombas", "prestasis", "beasiswas", "webinars", "certifications"];
   
   sheets.forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);
@@ -104,9 +103,6 @@ function handleGetData() {
             entry.benefits = entry.benefits.split(",").map(function(s) { return s.trim(); });
           }
         }
-        if (sheetName === "beasiswa_timelines" && entry.sortOrder) {
-          entry.sortOrder = Number(entry.sortOrder);
-        }
         dataRows.push(entry);
       }
     }
@@ -121,7 +117,7 @@ function handleGetData() {
 function handleSyncAll(dbData) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  var sheets = ["users", "lombas", "prestasis", "beasiswas", "beasiswa_timelines", "webinars", "certifications"];
+  var sheets = ["users", "lombas", "prestasis", "beasiswas", "webinars", "certifications"];
   
   sheets.forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);

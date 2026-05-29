@@ -121,7 +121,7 @@ export default function ProfilePage({ currentUser, onNavigate, onLogout }: Profi
       {/* Untirta Credentials stamp mark */}
       <div className="mt-6 flex items-center justify-center space-x-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
         <ShieldCheck className="h-4.5 w-4.5 text-lime-600" />
-        <span>Terverifikasi Sistim Kemahasiswaan Untirta</span>
+        <span>Terverifikasi Sistem Kemahasiswaan Untirta</span>
       </div>
     </div>
   );

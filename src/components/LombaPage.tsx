@@ -73,6 +73,43 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
     );
   };
 
+  const splitLines = (value: string) =>
+    String(value || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+  const cleanLine = (line: string) =>
+    line
+      .replace(/^\d+[.)]\s*/, '')
+      .replace(/^[-*]\s*/, '')
+      .trim();
+
+  const parseDetailLines = (value: string) =>
+    splitLines(value)
+      .map((line) => cleanLine(line))
+      .filter(Boolean);
+
+  const parseTemaSubtema = (value: string) => {
+    const raw = String(value || '').trim();
+    if (!raw) return { theme: '', subthemes: [] as string[] };
+
+    const parts = raw.split(/subtema\s*[:\-]/i);
+    if (parts.length > 1) {
+      const themePart = parts[0].replace(/tema\s*[:\-]/i, '').trim();
+      const subtemaPart = parts.slice(1).join(' ').trim();
+      const subthemes = parseDetailLines(subtemaPart.replace(/[,;]/g, '\n'));
+      return { theme: themePart || raw, subthemes };
+    }
+
+    const lines = splitLines(raw);
+    if (lines.length > 1) {
+      return { theme: lines[0], subthemes: parseDetailLines(lines.slice(1).join('\n')) };
+    }
+
+    return { theme: raw, subthemes: [] as string[] };
+  };
+
   // Pagination bounds calculation
   const filteredPrestList = getFilteredPrestasis();
   const totalPages = Math.ceil(filteredPrestList.length / itemsPerPage) || 1;
@@ -80,6 +117,11 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const temaData = selectedLomba ? parseTemaSubtema(selectedLomba.temaSubtema || '') : { theme: '', subthemes: [] as string[] };
+  const timelineText = selectedLomba?.timeline || 'Hubungi panitia penyelenggara terkait rincian gelombang pendaftaran.';
+  const timelineLines = parseDetailLines(timelineText);
+  const useTimelineList = timelineLines.length > 1;
 
   const handleApplyFilter = () => {
     setFilterApplied(true);
@@ -508,8 +550,16 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 mb-3 font-display">Tema Utama & Cakupan Subtema</h4>
                   <div className="rounded-lg bg-blue-50/30 border border-blue-100 p-4">
-                    <p className="font-bold text-blue-950 text-sm mb-2">Tema: {selectedLomba.temaSubtema || 'Optimasi Rantai Pasok Berkelanjutan'}</p>
-                    <p className="text-slate-550 leading-relaxed">Subtema mencakup integrasi Simulasi Industri (Arena/Promodel), optimasi green logistics, perancangan ergonomis tata letak fasilitas pabrik, dan hilirisasi riset di era society 5.0.</p>
+                    <p className="font-bold text-blue-950 text-sm mb-2">Tema: {temaData.theme || 'Tema belum diisi.'}</p>
+                    {temaData.subthemes.length > 0 ? (
+                      <ul className="list-disc pl-5 space-y-1 text-slate-550 leading-relaxed">
+                        {temaData.subthemes.map((item, idx) => (
+                          <li key={`${selectedLomba.id}-subtema-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-slate-550 leading-relaxed">Subtema belum tersedia.</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -517,8 +567,16 @@ export default function LombaPage({ onNavigate, initialViewMode = 'landing' }: L
               {activeDetailsTab === 'timeline' && (
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 mb-3 font-display">Milestone / Agenda Lomba</h4>
-                  <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-4 font-mono whitespace-pre-line leading-relaxed text-slate-700">
-                    {selectedLomba.timeline || 'Hubungi panitia penyelenggara terkait rincian gelombang pendaftaran.'}
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-4 leading-relaxed text-slate-700">
+                    {useTimelineList ? (
+                      <ul className="list-disc pl-5 space-y-1">
+                        {timelineLines.map((line, idx) => (
+                          <li key={`${selectedLomba.id}-timeline-${idx}`}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="whitespace-pre-line">{timelineText}</p>
+                    )}
                   </div>
                 </div>
               )}

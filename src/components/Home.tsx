@@ -37,7 +37,7 @@ export default function Home({ onNavigate, subTab = 'home' }: HomeProps) {
   const faqData = [
     {
       q: "Apa itu GateTI?",
-      a: "GateTI adalah platform informasi yang menyediakan berbagai update lomba, webinar, dan beasiswa untuk mahasiswa Teknik Industri S1 dan S2 Universitas Sultan Ageng Tirtayasa (Untirta). Website ini berfungsi sebagai pusat informasi koordinasi, bukan penyelenggara utama."
+      a: "GateTI adalah platform informasi yang menyediakan berbagai update lomba, webinar, dan beasiswa untuk mahasiswa Teknik Industri S1 Universitas Sultan Ageng Tirtayasa (Untirta). Website ini berfungsi sebagai pusat informasi koordinasi, bukan penyelenggara utama."
     },
     {
       q: "Apakah GateTI memberikan beasiswa secara langsung?",

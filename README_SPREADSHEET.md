@@ -6,7 +6,7 @@ Dokumen ini menjelaskan cara menyusun **Google Spreadsheet** sebagai database ut
 
 ## 📅 Bagian 1: Struktur Tabel Google Spreadsheet
 
-Buat sebuah file Google Spreadsheet baru, lalu tambahkan **7 buah tab (Sheet)** dengan nama persis sebagai berikut:
+Buat sebuah file Google Spreadsheet baru, lalu tambahkan **6 buah tab (Sheet)** dengan nama persis sebagai berikut:
 
 ### 1. Tab Sheet: `users`
 Digunakan untuk mengelola akun mahasiswa dan admin.
@@ -53,23 +53,9 @@ Digunakan untuk mengelola pendaftaran beasiswa mahasiswa.
 * **Kolom D:** `description` (Deskripsi singkat)
 * **Kolom E:** `image` (Tautan Google Drive gambar poster beasiswa)
 * **Kolom F:** `registerLink` (Link pendaftaran)
-* **Kolom G:** `timeline` (Opsional/fallback: timeline ringkas baris baru)
+* **Kolom G:** `timeline` (Timeline seleksi; isi per baris contoh: `Seleksi Administrasi: Maret - Mei 2026`)
 * **Kolom H:** `requirements` (Persyaratan utama)
-
-### 5. Tab Sheet: `beasiswa_timelines`
-Digunakan untuk mengelola tahap timeline beasiswa secara terstruktur agar dapat di-CRUD dari halaman Admin.
-* **Kolom A:** `id` (misal: `BT01`)
-* **Kolom B:** `beasiswaId` (harus sama dengan kolom `id` pada sheet `beasiswas`, misal: `B01`)
-* **Kolom C:** `phase` (Nama tahap, misal: `Seleksi Administrasi`)
-* **Kolom D:** `date` (Periode/tanggal, misal: `Maret - Mei 2026`)
-* **Kolom E:** `description` (Catatan opsional, boleh kosong)
-* **Kolom F:** `sortOrder` (Urutan angka, misal: `1`, `2`, `3`)
-
-Jika sebelumnya timeline beasiswa hanya ditulis di kolom `timeline` pada sheet `beasiswas`, pindahkan tiap baris timeline menjadi satu baris baru di `beasiswa_timelines`. Contoh:
-* `B01 | Seleksi Administrasi | Maret - Mei 2026 | 1`
-* `B01 | Test Online | April - Mei 2026 | 2`
-
-### 6. Tab Sheet: `webinars`
+### 5. Tab Sheet: `webinars`
 Digunakan untuk mengelola info Webinar.
 * **Kolom A:** `id` (misal: `W01`)
 * **Kolom B:** `title` (Judul Utama)
@@ -85,7 +71,7 @@ Digunakan untuk mengelola info Webinar.
 * **Kolom L:** `description` (Deskripsi detail)
 * **Kolom M:** `benefits` (Benefit dipisah koma, misal: `E-Sertifikat,Materi PDF,Networking`)
 
-### 7. Tab Sheet: `certifications`
+### 6. Tab Sheet: `certifications`
 Digunakan untuk mengelola sertifikasi keahlian Teknik Industri.
 * **Kolom A:** `id`
 * **Kolom B:** `title` (Nama Sertifikasi)
@@ -139,12 +125,12 @@ function doPost(e) {
   }
 }
 
-// Membaca seluruh data dari 7 sheet aktif
+// Membaca seluruh data dari 6 sheet aktif
 function handleGetData() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var result = {};
   
-  var sheets = ["users", "lombas", "prestasis", "beasiswas", "beasiswa_timelines", "webinars", "certifications"];
+  var sheets = ["users", "lombas", "prestasis", "beasiswas", "webinars", "certifications"];
   
   sheets.forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);
@@ -189,9 +175,6 @@ function handleGetData() {
             entry.benefits = entry.benefits.split(",").map(function(s) { return s.trim(); });
           }
         }
-        if (sheetName === "beasiswa_timelines" && entry.sortOrder) {
-          entry.sortOrder = Number(entry.sortOrder);
-        }
         dataRows.push(entry);
       }
     }
@@ -206,7 +189,7 @@ function handleGetData() {
 function handleSyncAll(dbData) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  var sheets = ["users", "lombas", "prestasis", "beasiswas", "beasiswa_timelines", "webinars", "certifications"];
+  var sheets = ["users", "lombas", "prestasis", "beasiswas", "webinars", "certifications"];
   
   sheets.forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);

@@ -48,6 +48,22 @@ export default function SertifikasiPage({ onNavigate, initialViewMode = 'landing
     return certifications.filter(c => c.category === activeCategory);
   };
 
+  const formatRupiah = (value: string) => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return '-';
+    if (/gratis|free/i.test(trimmed)) return 'Gratis';
+
+    const withoutRp = trimmed.replace(/rp\.?\s*/gi, '');
+    if (!/\d/.test(withoutRp)) return trimmed;
+
+    return withoutRp.replace(/\d[\d.,]*/g, (match) => {
+      const digits = match.replace(/[^0-9]/g, '');
+      if (!digits) return match;
+      const formatted = Number(digits).toLocaleString('id-ID');
+      return `Rp${formatted}`;
+    });
+  };
+
   // Recommendations click handler showing custom dialog guide
   const handleShowRecommendationGuide = (goal: string) => {
     alert(`Rekomendasi Karir ${goal}:\nSila selaraskan bidang ini dengan mengambil Sertifikasi pendukung di daftar Sertifikasi kami! Coba fitur Quiz Cepat di bawah.`);
@@ -193,7 +209,7 @@ export default function SertifikasiPage({ onNavigate, initialViewMode = 'landing
         <div className="space-y-10 animate-fade-in" id="sertifikasi-grid">
           
           {/* Back Trigger */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div className="flex flex-col items-start gap-2 pb-4 border-b border-slate-200 sm:flex-row sm:items-center sm:justify-between">
             <button 
               onClick={() => setViewMode('landing')}
               className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-blue-900 transition"
@@ -202,7 +218,7 @@ export default function SertifikasiPage({ onNavigate, initialViewMode = 'landing
               <ArrowLeft className="h-4 w-4" />
               <span>Kembali</span>
             </button>
-            <h2 className="text-xl font-extrabold text-blue-950 font-display">
+            <h2 className="text-base font-extrabold text-blue-950 font-display leading-tight sm:text-xl">
               Jelajahi Sertifikasi Keahlian TI
             </h2>
           </div>
@@ -253,7 +269,7 @@ export default function SertifikasiPage({ onNavigate, initialViewMode = 'landing
                     </p>
                     <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 font-medium pt-1 font-mono">
                       <span>DAFTAR: <b className="text-red-600">{c.deadline || 'Buka Sepanjang Tahun'}</b></span>
-                      <span>BIAYA: <b className="text-emerald-700">{c.fee}</b></span>
+                      <span>BIAYA: <b className="text-emerald-700">{formatRupiah(c.fee)}</b></span>
                     </div>
                   </div>
 

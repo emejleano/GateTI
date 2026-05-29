@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { loginUser } from '../api';
-import { Lock, UserCheck, AlertCircle } from 'lucide-react';
+import { Lock, UserCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import logoTeknikIndustri from '../image/logo_teknikindustri.png';
 import loginBg from '../image/login_card.png';
 
@@ -14,6 +14,7 @@ interface LoginProps {
 export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
   const [nim, setNim] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,12 +117,20 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
               </span>
               <input
                 id="login-input-pwd"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Masukkan Password..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-semibold text-slate-800 transition focus:border-blue-900 focus:bg-white focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-10 text-sm font-semibold text-slate-800 transition focus:border-blue-900 focus:bg-white focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+              >
+                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+              </button>
             </div>
             {/* Olive notice on bottom from Page 1 */}
             <p className="mt-2 text-left text-xs font-medium text-lime-700">

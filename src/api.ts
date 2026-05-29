@@ -6,7 +6,7 @@
  * All data is fetched from Google Spreadsheet via Apps Script.
  */
 
-import { User, Lomba, Prestasi, Beasiswa, BeasiswaTimeline, Webinar, Certification } from './types';
+import { User, Lomba, Prestasi, Beasiswa, Webinar, Certification } from './types';
 
 // ========== HARDCODED APPS SCRIPT URL ==========
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPmza3YGdtt8xXRN-1jufhS8K1ZxViCWjnYrY1BTPndrGgBQ5VeGgq65wHn36MevSNDQ/exec';
@@ -17,7 +17,6 @@ export interface DatabaseSchema {
   lombas: Lomba[];
   prestasis: Prestasi[];
   beasiswas: Beasiswa[];
-  beasiswa_timelines: BeasiswaTimeline[];
   webinars: Webinar[];
   certifications: Certification[];
 }
@@ -93,10 +92,6 @@ export async function fetchAllData(forceRefresh = false): Promise<DatabaseSchema
       beasiswas: (data.beasiswas || []).map((b: any) => ({
         ...b,
         image: convertGoogleDriveUrl(b.image),
-      })),
-      beasiswa_timelines: (data.beasiswa_timelines || []).map((t: any) => ({
-        ...t,
-        sortOrder: Number(t.sortOrder || 1),
       })),
       webinars: (data.webinars || []).map((w: any) => ({
         ...w,
@@ -175,6 +170,7 @@ async function syncToSpreadsheet(data: DatabaseSchema): Promise<void> {
   try {
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
+      mode: 'no-cors',
       body: JSON.stringify({ action: 'syncAll', data }),
       redirect: 'follow',
     });
@@ -229,11 +225,6 @@ export async function deleteItem(
   const data = await fetchAllData();
   (data as any)[collection] = (data[collection] as any[]).filter((x: any) => x.id !== id);
 
-  // Also delete related beasiswa_timelines when deleting a beasiswa
-  if (collection === 'beasiswas') {
-    data.beasiswa_timelines = data.beasiswa_timelines.filter(t => t.beasiswaId !== id);
-  }
-
   _cache = data;
   _lastFetchTime = Date.now();
   await syncToSpreadsheet(data);
@@ -279,52 +270,6 @@ export async function deleteUser(nim: string): Promise<DatabaseSchema> {
     throw new Error('Minimal harus ada satu user tersisa.');
   }
   data.users = data.users.filter(u => String(u.nim) !== String(nim));
-
-  _cache = data;
-  _lastFetchTime = Date.now();
-  await syncToSpreadsheet(data);
-  return { ...data };
-}
-
-// ========== BEASISWA TIMELINE CRUD ==========
-
-export async function addOrUpdateTimeline(timeline: BeasiswaTimeline): Promise<DatabaseSchema> {
-  const data = await fetchAllData();
-
-  const normalized: BeasiswaTimeline = {
-    id: String(timeline.id || '').trim(),
-    beasiswaId: String(timeline.beasiswaId || '').trim(),
-    phase: String(timeline.phase || '').trim(),
-    date: String(timeline.date || '').trim(),
-    description: String(timeline.description || '').trim(),
-    sortOrder: Number(timeline.sortOrder || 1),
-  };
-
-  if (!normalized.beasiswaId || !normalized.phase || !normalized.date) {
-    throw new Error('Beasiswa, tahap, dan tanggal wajib diisi.');
-  }
-
-  if (normalized.id) {
-    const idx = data.beasiswa_timelines.findIndex(t => t.id === normalized.id);
-    if (idx > -1) {
-      data.beasiswa_timelines[idx] = normalized;
-    } else {
-      data.beasiswa_timelines.push(normalized);
-    }
-  } else {
-    normalized.id = `BT_${Date.now()}`;
-    data.beasiswa_timelines.push(normalized);
-  }
-
-  _cache = data;
-  _lastFetchTime = Date.now();
-  await syncToSpreadsheet(data);
-  return { ...data };
-}
-
-export async function deleteTimeline(id: string): Promise<DatabaseSchema> {
-  const data = await fetchAllData();
-  data.beasiswa_timelines = data.beasiswa_timelines.filter(t => t.id !== id);
 
   _cache = data;
   _lastFetchTime = Date.now();

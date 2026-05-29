@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   fetchAllData, addOrUpdateItem, deleteItem, addOrUpdateUser, deleteUser,
-  addOrUpdateTimeline, deleteTimeline, invalidateCache, generateQRCodeUrl, DatabaseSchema
+  invalidateCache, generateQRCodeUrl, DatabaseSchema
 } from '../api';
 import {
-  Lomba, Prestasi, Beasiswa, BeasiswaTimeline, Webinar, Certification, User
+  Lomba, Prestasi, Beasiswa, Webinar, Certification, User
 } from '../types';
 import {
   Plus, Trash2, ShieldCheck, Database, Calendar, Award,
-  Tv, GraduationCap, AlertTriangle, CheckCircle, Edit, KeyRound,
-  ChevronDown, ChevronUp, Clock, ArrowUp, ArrowDown
+  Tv, GraduationCap, AlertTriangle, CheckCircle, Edit, KeyRound
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -27,7 +26,6 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   const [users, setUsers] = useState<User[]>([]);
   const [lombas, setLombas] = useState<Lomba[]>([]);
   const [beasiswas, setBeasiswas] = useState<Beasiswa[]>([]);
-  const [beasiswaTimelines, setBeasiswaTimelines] = useState<BeasiswaTimeline[]>([]);
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [prestasis, setPrestasis] = useState<Prestasi[]>([]);
@@ -45,6 +43,7 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   const [newBeasiswa, setNewBeasiswa] = useState<Partial<Beasiswa>>({
     title: '', provider: '', description: '', image: '', registerLink: '', timeline: '', requirements: ''
   });
+  const [editingBeasiswaId, setEditingBeasiswaId] = useState<string | null>(null);
   const [newUser, setNewUser] = useState<Partial<User>>({
     nim: '', name: '', jurusan: 'S1 Teknik Industri', angkatan: '2026', role: 'user', passwordHash: '', photoUrl: ''
   });
@@ -59,13 +58,6 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   const [newPrest, setNewPrest] = useState<Partial<Prestasi>>({
     name: '', title: '', category: 'Essay', level: 'Nasional', year: '2026', organizer: '', rank: 'Juara 1'
   });
-
-  // Beasiswa Timeline inline editing state
-  const [expandedBeasiswaId, setExpandedBeasiswaId] = useState<string | null>(null);
-  const [timelineForm, setTimelineForm] = useState<Partial<BeasiswaTimeline>>({
-    phase: '', date: '', description: '', sortOrder: 1
-  });
-  const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null);
 
   // Pull all data from Apps Script
   const reloadAllData = async () => {
@@ -86,7 +78,6 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
     setUsers(data.users);
     setLombas(data.lombas);
     setBeasiswas(data.beasiswas);
-    setBeasiswaTimelines(data.beasiswa_timelines);
     setWebinars(data.webinars);
     setCertifications(data.certifications);
     setPrestasis(data.prestasis);
@@ -95,6 +86,12 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   useEffect(() => {
     reloadAllData();
   }, []);
+
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = window.setTimeout(() => setFeedback(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
 
   // --- USER CRUD ---
   const resetUserForm = () => {
@@ -175,88 +172,53 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   };
 
   // --- BEASISWA CRUD ---
-  const handleAddBeasiswa = async (e: React.FormEvent) => {
+  const resetBeasiswaForm = () => {
+    setNewBeasiswa({ title: '', provider: '', description: '', image: '', registerLink: '', timeline: '', requirements: '' });
+    setEditingBeasiswaId(null);
+  };
+
+  const handleSaveBeasiswa = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBeasiswa.title || !newBeasiswa.provider) return;
+    if (!newBeasiswa.title || !newBeasiswa.provider) {
+      setFeedback({ type: 'error', text: 'Nama program beasiswa dan penyelenggara wajib diisi.' });
+      return;
+    }
     try {
       setActionLoading(true);
-      const result = await addOrUpdateItem('beasiswas', newBeasiswa, 'BEAS');
+      const result = await addOrUpdateItem('beasiswas', editingBeasiswaId ? { ...newBeasiswa, id: editingBeasiswaId } : newBeasiswa, 'BEAS');
       applyData(result);
-      setNewBeasiswa({ title: '', provider: '', description: '', image: '', registerLink: '', timeline: '', requirements: '' });
-      setFeedback({ type: 'success', text: 'Beasiswa sukses ditambahkan!' });
+      resetBeasiswaForm();
+      setFeedback({ type: 'success', text: editingBeasiswaId ? 'Informasi beasiswa berhasil diperbarui.' : 'Beasiswa sukses ditambahkan!' });
     } catch (err: any) {
       setFeedback({ type: 'error', text: err.message || 'Gagal menyimpan beasiswa.' });
     } finally { setActionLoading(false); }
   };
 
+  const handleEditBeasiswa = (beasiswa: Beasiswa) => {
+    setNewBeasiswa({ ...beasiswa });
+    setEditingBeasiswaId(beasiswa.id);
+    setFeedback(null);
+  };
+
   const handleDeleteBeasiswa = async (id: string) => {
-    if (!confirm('Hapus beasiswa ini beserta semua timeline-nya?')) return;
+    if (!confirm('Hapus beasiswa ini?')) return;
     try {
       setActionLoading(true);
       const result = await deleteItem('beasiswas', id);
       applyData(result);
-      if (expandedBeasiswaId === id) setExpandedBeasiswaId(null);
+      if (editingBeasiswaId === id) resetBeasiswaForm();
       setFeedback({ type: 'success', text: 'Beasiswa berhasil dihapus.' });
     } catch { setFeedback({ type: 'error', text: 'Gagal menghapus beasiswa.' }); }
     finally { setActionLoading(false); }
   };
 
-  // --- BEASISWA TIMELINE CRUD (Inline) ---
-  const resetTimelineForm = () => {
-    setTimelineForm({ phase: '', date: '', description: '', sortOrder: 1 });
-    setEditingTimelineId(null);
-  };
-
-  const handleSaveTimeline = async (beasiswaId: string) => {
-    if (!timelineForm.phase || !timelineForm.date) {
-      setFeedback({ type: 'error', text: 'Tahap dan tanggal wajib diisi.' });
-      return;
-    }
-    try {
-      setActionLoading(true);
-      const payload: BeasiswaTimeline = {
-        id: editingTimelineId || '',
-        beasiswaId,
-        phase: timelineForm.phase || '',
-        date: timelineForm.date || '',
-        description: timelineForm.description || '',
-        sortOrder: Number(timelineForm.sortOrder || 1),
-      };
-      const result = await addOrUpdateTimeline(payload);
-      applyData(result);
-      resetTimelineForm();
-      setFeedback({ type: 'success', text: editingTimelineId ? 'Timeline diperbarui.' : 'Timeline ditambahkan.' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', text: err.message || 'Gagal menyimpan timeline.' });
-    } finally { setActionLoading(false); }
-  };
-
-  const handleEditTimeline = (t: BeasiswaTimeline) => {
-    setTimelineForm({ phase: t.phase, date: t.date, description: t.description, sortOrder: t.sortOrder });
-    setEditingTimelineId(t.id);
-  };
-
-  const handleDeleteTimeline = async (id: string) => {
-    if (!confirm('Hapus tahap timeline ini?')) return;
-    try {
-      setActionLoading(true);
-      const result = await deleteTimeline(id);
-      applyData(result);
-      if (editingTimelineId === id) resetTimelineForm();
-      setFeedback({ type: 'success', text: 'Timeline dihapus.' });
-    } catch { setFeedback({ type: 'error', text: 'Gagal menghapus timeline.' }); }
-    finally { setActionLoading(false); }
-  };
-
-  const getTimelinesForBeasiswa = (beasiswaId: string) =>
-    beasiswaTimelines
-      .filter(t => t.beasiswaId === beasiswaId)
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-
   // --- WEBINAR CRUD ---
   const handleAddWebinar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWebinar.title || !newWebinar.speakerName) return;
+    if (!newWebinar.title || !newWebinar.speakerName) {
+      setFeedback({ type: 'error', text: 'Judul webinar dan nama pembicara wajib diisi.' });
+      return;
+    }
     try {
       setActionLoading(true);
       const payload = {
@@ -283,7 +245,10 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   // --- CERTIFICATION CRUD ---
   const handleAddCert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCert.title || !newCert.provider) return;
+    if (!newCert.title || !newCert.provider) {
+      setFeedback({ type: 'error', text: 'Nama sertifikasi dan provider wajib diisi.' });
+      return;
+    }
     try {
       setActionLoading(true);
       const result = await addOrUpdateItem('certifications', newCert, 'CERT');
@@ -304,7 +269,10 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
   // --- PRESTASI CRUD ---
   const handleAddPrest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPrest.name || !newPrest.title) return;
+    if (!newPrest.name || !newPrest.title) {
+      setFeedback({ type: 'error', text: 'Nama penerima/tim dan judul karya wajib diisi.' });
+      return;
+    }
     try {
       setActionLoading(true);
       const result = await addOrUpdateItem('prestasis', newPrest, 'PRES');
@@ -324,6 +292,23 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 w-full animate-fade-in" id="admin-dashboard-page">
+      {feedback && (
+        <div className="fixed right-4 top-4 z-[60] w-[min(calc(100vw-2rem),24rem)] animate-fade-in">
+          <div className={`flex items-start space-x-3 rounded-xl border p-4 text-xs font-semibold shadow-lg ${
+            feedback.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+          }`}>
+            {feedback.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0" /> : <AlertTriangle className="h-5 w-5 shrink-0" />}
+            <div className="min-w-0">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider">
+                {feedback.type === 'success' ? 'Berhasil Disimpan' : 'Aksi Gagal'}
+              </span>
+              <span className="mt-1 block leading-relaxed">{feedback.text}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header Panel */}
       <div className="flex flex-col md:flex-row items-center justify-between pb-6 mb-8 border-b border-slate-200 gap-4">
@@ -575,11 +560,25 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 pb-1.5">Tema &amp; Subtema</label>
-                    <input type="text" required value={newLomba.temaSubtema} onChange={(e) => setNewLomba({ ...newLomba, temaSubtema: e.target.value })} placeholder="Optimasi Rantai Pasok Hijau..." className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none" />
+                    <textarea
+                      required
+                      rows={2}
+                      value={newLomba.temaSubtema}
+                      onChange={(e) => setNewLomba({ ...newLomba, temaSubtema: e.target.value })}
+                      placeholder="Tema utama\nSubtema 1\nSubtema 2"
+                      className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none"
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 pb-1.5">Timeline</label>
-                    <input type="text" required value={newLomba.timeline} onChange={(e) => setNewLomba({ ...newLomba, timeline: e.target.value })} placeholder="Pendaftaran: Maret - Mei 2026..." className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none" />
+                    <textarea
+                      required
+                      rows={2}
+                      value={newLomba.timeline}
+                      onChange={(e) => setNewLomba({ ...newLomba, timeline: e.target.value })}
+                      placeholder="Pendaftaran: Maret - Mei 2026\nSeleksi: Juni 2026"
+                      className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none"
+                    />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 pb-1.5">Syarat &amp; Ketentuan</label>
@@ -625,10 +624,17 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
             <div className="space-y-6 animate-fade-in" id="beasiswa-management-tab">
 
               {/* Add Beasiswa Form */}
-              <form onSubmit={handleAddBeasiswa} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 font-display uppercase tracking-wide pb-3 border-b border-slate-100">
-                  Tambah Beasiswa Baru
-                </h3>
+              <form onSubmit={handleSaveBeasiswa} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-900 font-display uppercase tracking-wide">
+                    {editingBeasiswaId ? 'Edit Informasi Beasiswa' : 'Tambah Beasiswa Baru'}
+                  </h3>
+                  {editingBeasiswaId && (
+                    <button type="button" onClick={resetBeasiswaForm} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900">
+                      Batal Edit
+                    </button>
+                  )}
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 pb-1.5">Nama Program Beasiswa</label>
@@ -651,16 +657,27 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                     <textarea rows={2} value={newBeasiswa.description} onChange={(e) => setNewBeasiswa({ ...newBeasiswa, description: e.target.value })} placeholder="Intisari info beasiswa..." className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none" />
                   </div>
                   <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 pb-1.5">Informasi Jadwal Seleksi</label>
+                    <textarea
+                      rows={4}
+                      value={newBeasiswa.timeline}
+                      onChange={(e) => setNewBeasiswa({ ...newBeasiswa, timeline: e.target.value })}
+                      placeholder="Contoh: Pendaftaran dibuka Juni - Juli 2026. Seleksi administrasi dan pengumuman akan diinformasikan melalui kanal resmi penyelenggara."
+                      className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 pb-1.5">Syarat dan Kriteria</label>
                     <textarea rows={3} value={newBeasiswa.requirements} onChange={(e) => setNewBeasiswa({ ...newBeasiswa, requirements: e.target.value })} placeholder="1. IPK minimal 3.00..." className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none" />
                   </div>
                 </div>
                 <button type="submit" className="rounded-lg bg-blue-700 hover:bg-blue-800 px-5 py-2.5 text-xs font-bold text-white flex items-center space-x-1.5 ml-auto">
-                  <Plus className="h-4 w-4" /><span>Simpan Beasiswa</span>
+                  {editingBeasiswaId ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  <span>{editingBeasiswaId ? 'Update Beasiswa' : 'Simpan Beasiswa'}</span>
                 </button>
               </form>
 
-              {/* Beasiswa Cards with Inline Timeline Management */}
+              {/* Beasiswa Cards with information management */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 font-display uppercase tracking-wide flex items-center space-x-2">
@@ -678,10 +695,9 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
                   </div>
                 ) : (
                   beasiswas.map((b) => {
-                    const isExpanded = expandedBeasiswaId === b.id;
-                    const timelines = getTimelinesForBeasiswa(b.id);
+                    const hasScheduleInfo = Boolean((b.timeline || '').trim());
                     return (
-                      <div key={b.id} className={`rounded-2xl border bg-white shadow-sm overflow-hidden transition-all duration-300 ${isExpanded ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-200'}`}>
+                      <div key={b.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                         {/* Beasiswa Header Card */}
                         <div className="flex items-center justify-between p-5 gap-3">
                           <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -701,135 +717,16 @@ export default function AdminDashboard({ currentUser, onNavigate, onLogout }: Ad
 
                           <div className="flex items-center space-x-2 shrink-0">
                             <span className="hidden sm:inline-block text-[10px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
-                              {timelines.length} tahap
+                              {hasScheduleInfo ? 'Info jadwal tersedia' : 'Info jadwal kosong'}
                             </span>
-                            <button
-                              onClick={() => {
-                                setExpandedBeasiswaId(isExpanded ? null : b.id);
-                                resetTimelineForm();
-                              }}
-                              className={`flex items-center space-x-1.5 rounded-lg px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider transition border ${
-                                isExpanded
-                                  ? 'bg-blue-900 text-white border-blue-900'
-                                  : 'bg-white text-blue-900 border-blue-200 hover:bg-blue-50'
-                              }`}
-                            >
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>Timeline</span>
-                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            <button onClick={() => handleEditBeasiswa(b)} className="text-blue-700 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit informasi beasiswa">
+                              <Edit className="h-4 w-4" />
                             </button>
                             <button onClick={() => handleDeleteBeasiswa(b.id)} className="text-red-500 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus beasiswa">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
-
-                        {/* Expanded Timeline Panel */}
-                        {isExpanded && (
-                          <div className="border-t border-slate-100 bg-slate-50/50 p-5 space-y-5 animate-fade-in">
-
-                            {/* Visual Timeline Preview */}
-                            {timelines.length > 0 && (
-                              <div className="bg-white rounded-xl border border-slate-200 p-4">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-3">
-                                  PREVIEW TIMELINE SELEKSI
-                                </span>
-                                <div className="flex flex-wrap gap-2">
-                                  {timelines.map((t, i) => (
-                                    <div key={t.id} className="flex items-center space-x-2">
-                                      <div className="flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-900 text-white text-[10px] font-bold shrink-0">
-                                          {i + 1}
-                                        </span>
-                                        <div>
-                                          <span className="block text-[10px] font-bold text-slate-800 leading-tight">{t.phase}</span>
-                                          <span className="block text-[9px] font-mono text-blue-700">{t.date}</span>
-                                        </div>
-                                      </div>
-                                      {i < timelines.length - 1 && (
-                                        <span className="text-slate-300 font-bold">→</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Timeline Entries List */}
-                            {timelines.length > 0 && (
-                              <div className="space-y-2">
-                                {timelines.map((t) => (
-                                  <div key={t.id} className={`flex items-center justify-between bg-white rounded-xl border p-3.5 gap-3 transition ${editingTimelineId === t.id ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-200'}`}>
-                                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white text-[10px] font-bold shrink-0">
-                                        {t.sortOrder}
-                                      </span>
-                                      <div className="min-w-0">
-                                        <span className="block text-xs font-bold text-slate-800 truncate">{t.phase}</span>
-                                        <span className="block text-[10px] font-mono text-lime-700 font-bold">{t.date}</span>
-                                        {t.description && <span className="block text-[10px] text-slate-400 mt-0.5 truncate">{t.description}</span>}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-1 shrink-0">
-                                      <button onClick={() => handleEditTimeline(t)} className="text-blue-600 p-1.5 rounded-lg hover:bg-blue-50" title="Edit"><Edit className="h-3.5 w-3.5" /></button>
-                                      <button onClick={() => handleDeleteTimeline(t.id)} className="text-red-500 p-1.5 rounded-lg hover:bg-red-50" title="Hapus"><Trash2 className="h-3.5 w-3.5" /></button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Add/Edit Timeline Form (inline) */}
-                            <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800">
-                                  {editingTimelineId ? '✏️ EDIT TAHAP' : '➕ TAMBAH TAHAP BARU'}
-                                </span>
-                                {editingTimelineId && (
-                                  <button onClick={resetTimelineForm} className="text-[10px] font-bold text-slate-500 hover:text-slate-900 uppercase">
-                                    Batal
-                                  </button>
-                                )}
-                              </div>
-                              <div className="grid gap-3 sm:grid-cols-4">
-                                <div>
-                                  <label className="block text-[9px] font-bold uppercase text-slate-500 pb-1">Nama Tahap</label>
-                                  <input type="text" value={timelineForm.phase || ''} onChange={(e) => setTimelineForm({ ...timelineForm, phase: e.target.value })}
-                                    placeholder="Seleksi Administrasi"
-                                    className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-800 focus:outline-none focus:border-blue-400" />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] font-bold uppercase text-slate-500 pb-1">Periode / Tanggal</label>
-                                  <input type="text" value={timelineForm.date || ''} onChange={(e) => setTimelineForm({ ...timelineForm, date: e.target.value })}
-                                    placeholder="Maret - Mei 2026"
-                                    className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-800 focus:outline-none focus:border-blue-400" />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] font-bold uppercase text-slate-500 pb-1">Catatan (opsional)</label>
-                                  <input type="text" value={timelineForm.description || ''} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })}
-                                    placeholder="Keterangan singkat"
-                                    className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-800 focus:outline-none focus:border-blue-400" />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] font-bold uppercase text-slate-500 pb-1">Urutan</label>
-                                  <div className="flex items-center space-x-2">
-                                    <input type="number" min="1" value={timelineForm.sortOrder || 1} onChange={(e) => setTimelineForm({ ...timelineForm, sortOrder: Number(e.target.value) })}
-                                      className="w-16 rounded-lg border border-slate-200 p-2 text-xs text-slate-800 focus:outline-none text-center" />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveTimeline(b.id)}
-                                      disabled={actionLoading || !timelineForm.phase || !timelineForm.date}
-                                      className="flex-1 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-[10px] font-bold py-2 px-3 transition disabled:opacity-50 flex items-center justify-center space-x-1"
-                                    >
-                                      {editingTimelineId ? <Edit className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                                      <span>{editingTimelineId ? 'Update' : 'Simpan'}</span>
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })

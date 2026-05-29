@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchAllData, generateQRCodeUrl } from '../api';
-import { Beasiswa, BeasiswaTimeline } from '../types';
+import { Beasiswa } from '../types';
 import { ArrowLeft, ExternalLink, Calendar, CheckSquare, QrCode, ClipboardList, GraduationCap, Clock, Award } from 'lucide-react';
 import beasiswaBg from '../image/beasiswa.png';
 
@@ -12,7 +12,6 @@ interface BeasiswaPageProps {
 export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }: BeasiswaPageProps) {
   const [viewMode, setViewMode] = useState<'landing' | 'grid' | 'details'>(initialViewMode);
   const [beasiswas, setBeasiswas] = useState<Beasiswa[]>([]);
-  const [beasiswaTimelines, setBeasiswaTimelines] = useState<BeasiswaTimeline[]>([]);
   const [selectedBeasiswa, setSelectedBeasiswa] = useState<Beasiswa | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,9 +20,8 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
     const fetchBeasiswas = async () => {
       try {
         setLoading(true);
-        const data = await fetchAllData();
+        const data = await fetchAllData(true);
         setBeasiswas(data.beasiswas);
-        setBeasiswaTimelines(data.beasiswa_timelines);
       } catch (err) {
         console.error('Error loading scholarships', err);
       } finally {
@@ -38,30 +36,6 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
     setViewMode('details');
   };
 
-  const getTimelineRows = (beasiswa: Beasiswa): BeasiswaTimeline[] => {
-    const structuredRows = beasiswaTimelines
-      .filter((item) => item.beasiswaId === beasiswa.id)
-      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
-
-    if (structuredRows.length > 0) {
-      return structuredRows;
-    }
-
-    return (beasiswa.timeline || '')
-      .split('\n')
-      .map((line, index) => {
-        const [phase, ...dateParts] = line.split(':');
-        return {
-          id: `${beasiswa.id}-legacy-${index}`,
-          beasiswaId: beasiswa.id,
-          phase: (dateParts.length ? phase : line).trim(),
-          date: dateParts.join(':').trim(),
-          sortOrder: index + 1
-        };
-      })
-      .filter((item) => item.phase);
-  };
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 w-full" id="beasiswa-section-page">
       
@@ -70,11 +44,11 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
         <div className="space-y-8 animate-fade-in" id="beasiswa-landing">
           
           {/* Bento-style landing container */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             
             {/* Tile 1: Hero Welcome Banner (spans 2 columns on large viewports) */}
             <div 
-              className="lg:col-span-2 relative rounded-3xl overflow-hidden bg-cover bg-center h-[24rem] flex flex-col justify-between p-8 sm:p-12 shadow-xl border border-blue-950/10 group"
+              className="relative rounded-3xl overflow-hidden bg-cover bg-center h-[24rem] flex flex-col justify-between p-8 sm:p-12 shadow-xl border border-blue-950/10 group"
               style={{
                 backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.6)), url('${beasiswaBg}')`
               }}
@@ -102,29 +76,6 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
                   TEMUKAN BEASISWA SEKARANG
                 </button>
               </div>
-            </div>
-
-            {/* Tile 2: S1 scholarship focus widget (Right Bento Box) */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm flex flex-col justify-between text-center lg:text-left hover:shadow-md transition-all duration-300" id="beasiswa-categories">
-              <div className="space-y-4">
-                <div className="mx-auto lg:mx-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-900 shadow-inner border border-blue-100">
-                  <GraduationCap className="h-8 w-8 text-blue-900" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-blue-950 font-display uppercase">
-                    Beasiswa untuk S1
-                  </h3>
-                  <p className="mt-2 text-xs text-slate-500 leading-relaxed text-center lg:text-left">
-                    Konsolidasi pendaftaran program beasiswa eksklusif jenjang Sarjana (S1). Kami merangkum penyedia terpercaya untuk mempercepat akses mahasiswa.
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setViewMode('grid')}
-                className="mt-6 w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs py-3.5 shadow transition-all duration-300"
-              >
-                SELENGKAPNYA →
-              </button>
             </div>
 
           </div>
@@ -240,9 +191,6 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
               <ArrowLeft className="h-4 w-4" />
               <span>Kembali ke Daftar</span>
             </button>
-            <span className="text-xs font-mono font-bold text-slate-400">
-              KODE SCHOLARSHIP: {selectedBeasiswa.id}
-            </span>
           </div>
 
           {/* Split view: Poster vs Info (including Horizontal Timeline tree matching Page 14) */}
@@ -322,43 +270,20 @@ export default function BeasiswaPage({ onNavigate, initialViewMode = 'landing' }
             </div>
           </div>
 
-          {/* Timeline Tree Board (Page 14 representation) */}
+          {/* Selection schedule information */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 font-display flex items-center space-x-2 pb-4 border-b border-slate-100">
               <Clock className="h-5 w-5 text-blue-900" />
-              <span>Timeline Seleksi Penerimaan</span>
+              <span>Informasi Jadwal Seleksi</span>
             </h3>
 
-            {getTimelineRows(selectedBeasiswa).length > 0 ? (
-              <div className="mt-8 relative" id="timeline-interactive-tree">
-                {/* Connecting Line */}
-                <div className="absolute top-1/2 left-4 right-4 h-1 bg-slate-250 -translate-y-1/2 hidden md:block" />
-
-                <div className="grid gap-6 md:grid-cols-5 relative z-10 text-center">
-                  
-                  {getTimelineRows(selectedBeasiswa).map((pt, i) => (
-                    <div key={i} className="flex flex-col items-center space-y-2 bg-slate-50 md:bg-transparent rounded-xl p-4 md:p-0 border border-slate-100 md:border-transparent">
-                      {/* Node Bullet */}
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-900 text-white font-bold text-xs ring-4 ring-offset-2 ring-blue-900/10">
-                        {i + 1}
-                      </div>
-                      <span className="block text-xs font-bold text-slate-900 mt-2">{pt.phase}</span>
-                      <span className="block text-[10px] font-bold font-mono text-lime-700 bg-lime-50 px-2.5 py-1.5 rounded-full uppercase tracking-wide mt-1">
-                        {pt.date}
-                      </span>
-                      {pt.description && (
-                        <span className="block text-[10px] leading-relaxed text-slate-500 mt-1">
-                          {pt.description}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-
-                </div>
+            {selectedBeasiswa.timeline?.trim() ? (
+              <div className="mt-4 rounded-lg bg-slate-50 p-4 text-xs leading-relaxed text-slate-700 whitespace-pre-line border border-slate-100">
+                {selectedBeasiswa.timeline}
               </div>
             ) : (
               <div className="mt-4 p-4 rounded-lg bg-slate-50 text-xs font-mono font-bold leading-relaxed text-slate-700 whitespace-pre-line">
-                Timeline belum tersedia.
+                Informasi jadwal seleksi belum tersedia.
               </div>
             )}
           </div>

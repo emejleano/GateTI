@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { getDatabase, saveDatabase, convertGoogleDriveUrl } from './src/db/db_store';
-import { User, Lomba, Prestasi, Beasiswa, BeasiswaTimeline, Webinar, Certification } from './src/types';
+import { User, Lomba, Prestasi, Beasiswa, Webinar, Certification } from './src/types';
 
 async function startServer() {
   const app = express();
@@ -229,56 +229,8 @@ async function startServer() {
   app.delete('/api/beasiswas/:id', (req, res) => {
     const db = getDatabase();
     db.beasiswas = db.beasiswas.filter(b => b.id !== req.params.id);
-    db.beasiswa_timelines = (db.beasiswa_timelines || []).filter(t => t.beasiswaId !== req.params.id);
     saveDatabase(db);
     res.json({ success: true, beasiswas: db.beasiswas });
-  });
-
-  // Get scholarship timeline rows
-  app.get('/api/beasiswa-timelines', (req, res) => {
-    const db = getDatabase();
-    const rows = (db.beasiswa_timelines || []).sort((a, b) => {
-      if (a.beasiswaId !== b.beasiswaId) return a.beasiswaId.localeCompare(b.beasiswaId);
-      return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
-    });
-    res.json(rows);
-  });
-
-  // Create/Update scholarship timeline row
-  app.post('/api/beasiswa-timelines', (req, res) => {
-    const db = getDatabase();
-    const timeline: BeasiswaTimeline = {
-      id: String(req.body.id || '').trim(),
-      beasiswaId: String(req.body.beasiswaId || '').trim(),
-      phase: String(req.body.phase || '').trim(),
-      date: String(req.body.date || '').trim(),
-      description: String(req.body.description || '').trim(),
-      sortOrder: Number(req.body.sortOrder || 1)
-    };
-
-    if (!timeline.beasiswaId || !timeline.phase || !timeline.date) {
-      return res.status(400).json({ message: 'Beasiswa, tahap, dan tanggal wajib diisi.' });
-    }
-
-    db.beasiswa_timelines = db.beasiswa_timelines || [];
-    const idx = db.beasiswa_timelines.findIndex(t => t.id === timeline.id);
-    if (idx > -1) {
-      db.beasiswa_timelines[idx] = timeline;
-    } else {
-      timeline.id = timeline.id || 'BT_' + Date.now();
-      db.beasiswa_timelines.push(timeline);
-    }
-
-    saveDatabase(db);
-    res.json({ success: true, beasiswa_timelines: db.beasiswa_timelines });
-  });
-
-  // Delete scholarship timeline row
-  app.delete('/api/beasiswa-timelines/:id', (req, res) => {
-    const db = getDatabase();
-    db.beasiswa_timelines = (db.beasiswa_timelines || []).filter(t => t.id !== req.params.id);
-    saveDatabase(db);
-    res.json({ success: true, beasiswa_timelines: db.beasiswa_timelines });
   });
 
   // Get Webinars
